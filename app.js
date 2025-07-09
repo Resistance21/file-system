@@ -21,6 +21,76 @@ const promises_1 = require("node:fs/promises");
 const fileWatch = () => __awaiter(void 0, void 0, void 0, function* () {
     var _a, e_1, _b, _c;
     const commandFileHandler = yield (0, promises_1.open)("./command.txt", "r");
+    const createFile = (path) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            yield (0, promises_1.appendFile)(path, "", { flag: "ax" });
+            console.log("file created");
+        }
+        catch (e) {
+            console.log("file exsists");
+        }
+    });
+    const deleteFile = (path) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            yield (0, promises_1.unlink)(path);
+            console.log("file deleted");
+        }
+        catch (e) {
+            if (e instanceof Error)
+                console.log("error", e.message);
+        }
+    });
+    const renameFile = (oldpath, newpath) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            yield (0, promises_1.rename)(oldpath, newpath);
+            console.log("file renamed");
+        }
+        catch (e) {
+            if (e instanceof Error)
+                console.log("error", e.message);
+        }
+    });
+    const addToFile = (path, content) => __awaiter(void 0, void 0, void 0, function* () {
+        try {
+            yield (0, promises_1.appendFile)(path, content);
+            console.log("file appended");
+        }
+        catch (e) {
+            if (e instanceof Error)
+                console.log("error", e.message);
+        }
+    });
+    commandFileHandler.on("change", () => __awaiter(void 0, void 0, void 0, function* () {
+        const commandFileStats = yield commandFileHandler.stat();
+        const fileBuffer = Buffer.alloc(commandFileStats.size);
+        const fileContent = yield commandFileHandler.read(fileBuffer, {
+            position: 0,
+        });
+        const fileText = fileContent.buffer.toString();
+        const FILEOPTIONS = {
+            CRATE: "create a file",
+            DELETE: "delete file",
+            RENAME: "rename file",
+            ADDTOFILE: "add to file",
+        };
+        if (fileText.includes(FILEOPTIONS.CRATE)) {
+            createFile(fileText.substring(FILEOPTIONS.CRATE.length + 1));
+        }
+        if (fileText.includes(FILEOPTIONS.DELETE)) {
+            deleteFile(fileText.substring(FILEOPTIONS.DELETE.length + 1));
+        }
+        if (fileText.includes(FILEOPTIONS.RENAME)) {
+            const toIndex = fileText.indexOf(" to ");
+            const oldPath = fileText.substring(FILEOPTIONS.RENAME.length + 1, toIndex);
+            const newPath = fileText.substring(toIndex + 4);
+            renameFile(oldPath, newPath);
+        }
+        if (fileText.includes(FILEOPTIONS.ADDTOFILE)) {
+            const contentInx = fileText.indexOf(" add ");
+            addToFile(fileText.substring(FILEOPTIONS.ADDTOFILE.length + 1, contentInx), fileText.substring(contentInx + 4));
+        }
+        console.log(fileContent.buffer.toString());
+    }));
     const watcher = (0, promises_1.watch)("./command.txt");
     try {
         for (var _d = true, watcher_1 = __asyncValues(watcher), watcher_1_1; watcher_1_1 = yield watcher_1.next(), _a = watcher_1_1.done, !_a; _d = true) {
@@ -28,14 +98,8 @@ const fileWatch = () => __awaiter(void 0, void 0, void 0, function* () {
             _d = false;
             const event = _c;
             if (event.eventType === "change") {
-                console.log(event);
-                const commandFileStats = yield commandFileHandler.stat();
-                const fileBuffer = Buffer.alloc(commandFileStats.size);
-                console.log(commandFileStats.uid, commandFileStats.size);
-                const fileContent = yield commandFileHandler.read(fileBuffer, {
-                    position: 0,
-                });
-                console.log(fileContent);
+                commandFileHandler.emit("change");
+                //console.log("event", event);
             }
         }
     }
